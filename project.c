@@ -98,7 +98,7 @@ void ALU(unsigned A, unsigned B, char ALUControl, unsigned *ALUresult, char *Zer
 /* 10 Points */
 int instruction_fetch(unsigned PC, unsigned *Mem, unsigned *instruction)
 {
-    if(PC % 4 != 0){
+    if(PC % 4 != 0 || PC > 65536){
         return 1;
     }
     *instruction = Mem[PC>>2];
@@ -298,12 +298,18 @@ int rw_memory(unsigned ALUresult, unsigned data2, char MemWrite, char MemRead, u
     if(MemRead){
         if(ALUresult > 65536 || (ALUresult % 4))
             return 1;
+        
         *memdata = Mem[ALUresult >> 2];
+        
         return 0;
     }else if(MemWrite){
         if(ALUresult > 65536 || (ALUresult % 4))
             return 1;
+        
         Mem[ALUresult >> 2] = data2;
+        
+        return 0;
+    }else {
         return 0;
     }
 }
@@ -313,12 +319,31 @@ int rw_memory(unsigned ALUresult, unsigned data2, char MemWrite, char MemRead, u
 /* 10 Points */
 void write_register(unsigned r2, unsigned r3, unsigned memdata, unsigned ALUresult, char RegWrite, char RegDst, char MemtoReg, unsigned *Reg)
 {
+    
+    if(RegWrite){
+       unsigned destinationReg = (RegDst) ? r2:r3; //use correct register based on RegDst;
 
+       if(MemtoReg){
+           Reg[destinationReg] = memdata;
+           return;
+       } else{
+           Reg[destinationReg] = ALUresult;
+           return;
+       }
+    }
 }
 
 /* PC update */
 /* 10 Points */
 void PC_update(unsigned jsec, unsigned extended_value, char Branch, char Jump, char Zero, unsigned *PC)
 {
-
+    *PC += 4;
+    if(Branch){
+        *PC += extended_value << 2;
+        return;
+    } else if (Jump){
+        *PC = *PC & 0XF0000000;
+        *PC += jsec;
+        return;
+    }
 }
